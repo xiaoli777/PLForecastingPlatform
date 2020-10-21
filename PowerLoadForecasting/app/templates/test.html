@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>ECharts</title>
+    <script src="/static/js/echarts.min.js"></script>
+</head>
+<body>
+    <div id="main" style="width:1200px;height:5000px;"></div>
+    <script type="text/javascript">
+    var myChart = echarts.init(document.getElementById('main'));
+    var date_length = {{ results.date | tojson }}.length
+    var date = {{ results.date | tojson }}
+    var sign = {{ results.sign | tojson }}
+    var dayTime = 3600 * 24 * 1000;
+    var count = 0;
+    for(var i = 7;i >= 0;i--){
+        for(j = 0;j < date_length;j++){
+            if(sign[j] == i){
+                count ++;
+            }
+        }
+        if(count != 0){
+            break;
+        }
+    }
+
+    function getVirtulData() {
+        var date = +echarts.number.parseDate('{{ results.date[0] }}');
+        var end = +echarts.number.parseDate('{{ results.date[-1] }}');
+        var data = [];
+        var i = 0;
+        for (var time = date; time <= end; time += dayTime) {
+            data.push([
+                echarts.format.formatTime('yyyy-MM-dd', time),
+                1000 + sign[i]*1000
+            ]);
+            i = i + 1;
+        }
+        return data;
+    }
+
+    var data = getVirtulData();
+
+    option = {
+        title: {
+            top: 30,
+            text: 'Similar Days',
+            left: 'center',
+            textStyle: {
+                color: '#000'
+            }
+        },
+        tooltip : {
+            trigger: 'item'
+        },
+        legend: {
+            top: '30',
+            left: '100',
+            data:['Similar', 'Top'],
+            textStyle: {
+                color: '#000'
+            }
+        },
+        calendar: [{
+            top: 100,
+            left: 'center',
+            range: ['{{ results.date[0] }}', '{{ results.date[-1] }}'],
+            splitLine: {
+                show: true,
+                lineStyle: {
+                    color: '#000',
+                    width: 4,
+                    type: 'solid'
+                }
+            },
+            yearLabel: {
+                formatter: '{start}  1st',
+                textStyle: {
+                    color: '#fff'
+                }
+            },
+            itemStyle: {
+                normal: {
+                    color: '#323c48',
+                    borderWidth: 1,
+                    borderColor: '#111'
+                }
+            }
+        }],
+        series : [
+            {
+                name: 'Similar',
+                type: 'scatter',
+                coordinateSystem: 'calendar',
+                data: data,
+                symbolSize: function (val) {
+                    return val[1] / 500;
+                },
+                itemStyle: {
+                    normal: {
+                        color: '#ddb926'
+                    }
+                }
+            },
+            {
+                name: 'Top',
+                type: 'effectScatter',
+                coordinateSystem: 'calendar',
+                data: data.sort(function (a, b) {
+                    return b[1] - a[1];
+                }).slice(0, count),
+                symbolSize: function (val) {
+                    return val[1] / 500;
+                },
+                showEffectOn: 'render',
+                rippleEffect: {
+                    brushType: 'stroke'
+                },
+                hoverAnimation: true,
+                itemStyle: {
+                    normal: {
+                        color: '#f4e925',
+                        shadowBlur: 10,
+                        shadowColor: '#333'
+                    }
+                },
+                zlevel: 1
+            }
+        ]
+    };
+
+    myChart.setOption(option);
+    </script>
+</body>
+</html>
